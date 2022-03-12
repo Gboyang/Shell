@@ -1,0 +1,63 @@
+【网络场景】
+
+服务器bmc版本1.72.53，配置了3108raid卡（理论上也支持一些其他类型的raid卡，只要bmc内能看到存储监控中菜单，能够在bmc中进行raid配置，就可以用此方法进行raid配置）
+【现象描述】
+
+使用带外命令行的方式完成raid配置，方便批量配置raid
+【处理过程】
+
+无
+【根因】
+
+1、配置时请自行根据实际情况和需求对用户，密码，bmc ip等等配置参数进行修改
+
+2、需要注意，使用curl配置raid的方式实际上是借助redfish进行raid配置，与在bmc内配置raid的原理基本相同，因此此操作需要在服务器完全开机的情况下进行（即要保证bmc内能看到存储监控中这个菜单并能够看到raid卡下的硬盘，不可停在bios或者raid卡配置菜单等地方）
+
+3、采用此命令1次只能配置1个raid组，如需要配置多个raid组时，修改相关参数后多次下发即可，但是多条命令下发是建议留出足够的间隙，因为raid组配置命令的相比其他配置命令生效耗时较长，如果短时间内连续下发命令，存在配置失败的可能。
+
+4、此文档所写的命令均为linux操作系统下curl工具的命令（一般centos7.x操作系统会自带curl工具），windows系统也有curl工具（一般win10系统自带curl工具，网上也可以下载），如需使用windows版curl工具下发相应命令，需要对命令中-d后面的内容进行修改（大括号{}外面的两个单引号'改为双引号"，大括号里面的双引号"前面全部加上\）
+
+5、配置成功后会有sucess提示，配置完成后建议去bmc存储监控中检查raid的配置情况。
+【解决方案】
+
+       redfish对3108配置raid的方法如下：
+
+        curl -X POST -H 'Content-Type':'application/json' -d '{"ControllerId":0, "Raid": "RAID10", "Span": 2, "PhysicalDrives":["HA-RAID.0.Disk.3", "HA-RAID.0.Disk.5", "HA-RAID.0.Disk.7", "HA-RAID.0.Disk.11"], "UsePercentage":100, "LogicalDriveCount":1, "StripSizePerDDF":"256K", "LdReadPolicy":"AlwaysReadAhead", "LdWritePolicy":"WriteBack", "LdIOPolicy":"DirectIO", "AccessPolicy":"ReadWrite", "DiskCachePolicy":"Unchanged", "InitState":"QuickInit"}'   -u ADMIN:ADMIN https://10.82.20.237/redfish/v1/Systems/1/Storages/HA-RAID/Actions/Oem/Storage.CreateVolume -k
+
+ 
+
+        其中各参数定义如下：
+
+        ControllerId：控制器编号，默认为0
+
+        RAID：可配置RAID0，RAID1，RAID5，RAID6，RAID10，RAID50，RAID60
+
+        SPAN：即PD per span参数，配raid0,1,5,6时配置为1，配raid10改为2或者4，配raid50,60改为3或者4,
+
+        PhysicalDrives：类似"HA-RAID.0.Disk.3"格式，多块硬盘用逗号隔开，根据现场实际情况进行调整（disk.3对应bmc存储监控菜单内看到的PD号）
+
+        LdReadPolicy：可选AlwaysReadAhead，NoReadAhead（按需选择）
+
+        LdWritePolicy：可选WriteBack，WriteThrough，WriteBackWithBBU （按需选择，需注意：如参数选择WriteBackWithBBU，实际上配进去是AlwaysWriteBack）
+
+        LdIOPolicy：可选DirectIO，CachedIO（按需选择）
+
+        AccessPolicy：可选ReadWrite，ReadOnly，Blocked（注意：此参数不建议修改，默认使用ReadWrite）
+
+        DiskCachePolicy：可选Unchanged，Enable，Disable（按需选择）
+
+        InitState：可选NoInIT，QuickInit，FullInit（按需选择）
+
+ 
+
+        修改3108RAID卡JBOD功能是否开启的方法如下：
+
+        curl -X PATCH -H 'Content-Type':'application/json' -d '{"ControllerId":0,"BIOSBootMode":"PauseOnError","JBODMode":"Enable"}'   -u ADMIN:ADMIN https://10.82.20.237/redfish/v1/Systems/1/Storages/HA-RAID/Actions/Oem/HARAIDController.Save -k
+
+ 
+
+        其中各参数定义如下：
+
+        BIOSBootMode：可选PauseOnError，StopOnError，IgnoreError和SafeModeOnError，如无需修改可以删除此参数
+
+        JBODMode：是否开启JBOD功能，可选Enable和Disable

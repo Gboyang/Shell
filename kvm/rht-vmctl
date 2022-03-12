@@ -1,0 +1,249 @@
+#!/bin/bash
+
+IMG_DIR=/var/lib/libvirt/images
+XML_DIR=/etc/libvirt/qemu
+
+help(){
+	echo "Usage: rht-vmctl  子命令  虚拟机名称
+	子命令可以是:
+	   start: 启动虚拟机
+	   stop : 关闭虚拟机
+	   reset: 重置虚拟机
+	虚拟机名称可以是:
+	   red
+	   blue
+	   control
+	   node1
+	   node2
+	   node3
+	   node4
+	   node5"
+}
+reset_red(){
+  virsh destroy red &> /dev/null
+  virsh undefine red &> /dev/null
+  if [ -f $IMG_DIR/red.qcow2 ];then
+          rm -rf $IMG_DIR/red.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_red.vol.origin  $IMG_DIR/red.qcow2 &> /dev/null
+  cp $IMG_DIR/.rhel82_red.xml  $XML_DIR/red.xml
+  virsh define  $XML_DIR/red.xml &>/dev/null
+  chown qemu:qemu $IMG_DIR/*
+  echo "Define red vm OK."
+  virsh start  red  &> /dev/null
+}
+
+reset_blue(){
+  virsh destroy blue &> /dev/null
+  virsh undefine blue &> /dev/null
+  if [ -f $IMG_DIR/blue.qcow2 ];then
+          rm -rf $IMG_DIR/blue.qcow2
+  fi
+  if [ -f $IMG_DIR/blue_vdb.qcow2 ];then
+          rm -rf $IMG_DIR/blue_vdb.qcow2
+  fi
+  if [ -f $IMG_DIR/blue_vdc.qcow2 ];then
+          rm -rf $IMG_DIR/blue_vdc.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_blue.vol.origin  $IMG_DIR/blue.qcow2 &> /dev/null
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_blue_vdb.qcow2.origin  $IMG_DIR/blue_vdb.qcow2 &> /dev/null
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_blue_vdc.qcow2.origin  $IMG_DIR/blue_vdc.qcow2 &> /dev/null
+  cp $IMG_DIR/.rhel82_blue.xml  $XML_DIR/blue.xml
+  virsh define  $XML_DIR/blue.xml &>/dev/null
+  chown qemu:qemu $IMG_DIR/*
+  echo "Define blue vm OK."
+  virsh start blue &> /dev/null
+}
+
+
+reset_control(){
+  virsh destroy control &> /dev/null
+  virsh undefine control &> /dev/null
+  if [ -f $IMG_DIR/control.qcow2 ];then
+	  rm -rf $IMG_DIR/control.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_control.vol.origin  $IMG_DIR/control.qcow2 &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_control.xml  $XML_DIR/control.xml
+  virsh define  $XML_DIR/control.xml &>/dev/null
+  echo "Define control vm OK."
+  virsh start control &> /dev/null
+}
+
+
+reset_node1(){
+  virsh destroy node1 &> /dev/null
+  virsh undefine node1 &> /dev/null
+  if [ -f $IMG_DIR/node1.qcow2 ];then
+	  rm -rf $IMG_DIR/node1.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node1.vol.origin  $IMG_DIR/node1.qcow2 &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_node1.xml  $XML_DIR/node1.xml
+  virsh define  $XML_DIR/node1.xml &>/dev/null
+  echo "Define node1 vm OK."
+  virsh start node1 &> /dev/null
+}
+
+reset_node2(){
+  virsh destroy node2 &> /dev/null
+  virsh undefine node2 &> /dev/null
+  if [ -f $IMG_DIR/node2.qcow2 ];then
+	  rm -rf $IMG_DIR/node2.qcow2
+  fi
+  if [ -f $IMG_DIR/node2_vdb.qcow2 ];then
+	  rm -rf $IMG_DIR/node2_vdb.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node2.vol.origin  $IMG_DIR/node2.qcow2 &> /dev/null
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node2_vdb.qcow2.origin  $IMG_DIR/node2_vdb.qcow2 &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_node2.xml  $XML_DIR/node2.xml
+  virsh define  $XML_DIR/node2.xml &>/dev/null
+  echo "Define node2 vm OK."
+  virsh start node2 &> /dev/null
+}
+
+
+
+reset_node3(){
+  virsh destroy node3 &> /dev/null
+  virsh undefine node3 &> /dev/null
+  if [ -f $IMG_DIR/node3.qcow2 ];then
+	  rm -rf $IMG_DIR/node3.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node3.vol.origin  $IMG_DIR/node3.qcow2 &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_node3.xml  $XML_DIR/node3.xml
+  virsh define  $XML_DIR/node3.xml  &>/dev/null
+  echo "Define node3 vm OK."
+  virsh start node3 &> /dev/null
+}
+
+reset_node4(){
+  virsh destroy node4 &> /dev/null
+  virsh undefine node4 &> /dev/null
+  if [ -f $IMG_DIR/node4.qcow2 ];then
+	  rm -rf $IMG_DIR/node4.qcow2
+  fi
+  if [ -f $IMG_DIR/node4_vdb.qcow2 ];then
+	  rm -rf $IMG_DIR/node4_vdb.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node4.vol.origin  $IMG_DIR/node4.qcow2 &> /dev/null
+  qemu-img create -f qcow2 $IMG_DIR/node4_vdb.qcow2 2G &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_node4.xml  $XML_DIR/node4.xml
+  virsh define  $XML_DIR/node4.xml &>/dev/null
+  echo "Define node4 vm OK." 
+  virsh start node4 &> /dev/null
+}
+
+
+
+reset_node5(){
+  virsh destroy node5 &> /dev/null
+  virsh undefine node5 &> /dev/null
+  if [ -f $IMG_DIR/node5.qcow2 ];then
+	  rm -rf $IMG_DIR/node5.qcow2
+  fi
+  if [ -f $IMG_DIR/node5_vdb.qcow2 ];then
+	  rm -rf $IMG_DIR/node5_vdb.qcow2
+  fi
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node5.vol.origin  $IMG_DIR/node5.qcow2 &> /dev/null
+  qemu-img create -f qcow2 -b $IMG_DIR/.rhel82_node5_vdb.qcow2.origin  $IMG_DIR/node5_vdb.qcow2 &> /dev/null
+  chown qemu:qemu $IMG_DIR/*
+  cp $IMG_DIR/.rhel82_node5.xml  $XML_DIR/node5.xml
+  virsh define  $XML_DIR/node5.xml &>/dev/null
+  echo "Define node5 vm OK."
+  virsh start node5 &> /dev/null
+}
+
+startvm(){
+tmp=$(virsh list --all | awk -v vm=$1 '$2==vm {print "0"}')
+if [ "$tmp" == "0" ];then
+    virsh start $1 &>/dev/null
+    echo "Start $1 OK."
+else
+    echo "Could't found $1 vm."
+    echo "Please reset $1 vm first."
+fi
+}
+
+stopvm(){
+tmp=$(virsh list --all | awk -v vm=$1 '$2==vm {print "0"}')
+if [ "$tmp" == "0" ];then
+    virsh destroy $1 &>/dev/null
+    echo "Stop $1 OK."
+else
+    echo "Could't found $1 vm."
+    echo "Please reset $1 vm first."
+fi
+}
+
+
+case $1 in
+start)
+   case $2 in
+red)
+	startvm red;;
+blue)
+	startvm blue;;
+control)
+        startvm control;;
+node1)
+        startvm node1;;
+node2)
+        startvm node2;;
+node3)
+        startvm node3;;
+node4)
+        startvm node4;;
+node5)
+        startvm node5;;
+*)
+	help;;
+   esac;;
+stop)
+   case $2 in
+red)
+	stopvm red;;
+blue)
+	stopvm blue;;
+control)
+        stopvm control;;
+node1)
+        stopvm node1;;
+node2)
+        stopvm node2;;
+node3)
+        stopvm node3;;
+node4)
+        stopvm node4;;
+node5)
+        stopvm node5;;
+*)
+	help;;
+   esac;;
+reset)
+   case $2 in
+red)
+	reset_red;;
+blue)
+	reset_blue;;
+control)
+        reset_control;;
+node1)
+        reset_node1;;
+node2)
+        reset_node2;;
+node3)
+        reset_node3;;
+node4)
+        reset_node4;;
+node5)
+        reset_node5;;
+*)
+        help;;
+   esac;;
+*)
+  help;;
+esac

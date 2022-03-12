@@ -1,0 +1,39 @@
+#!/bin/bash
+# author:Gboyanghao
+
+correl_shell=/usr/local/bin/rht-vmctl
+host_list=(control node{1..5})
+
+if [ ! -f $correl_shell ];then
+	echo -e "\033[31m ERROR: Check $correl_shell file exists\033[0m"
+	exit 2
+fi
+
+public () {
+	motion=$*
+	for host in ${host_list[*]}
+	do
+		$correl_shell $motion $host
+	done
+}
+
+print_info () {
+	echo -e "\033[33m
+	---------------------------
+	1、$0 stop
+	2、$0 start
+	3、$0 reset
+	---------------------------
+	\033[0m"
+}
+
+case $1 in
+	stop)
+		public 'stop';;
+	start)
+		public 'start';;
+	reset)
+		public 'reset';;
+	*)
+		print_info;;
+esac

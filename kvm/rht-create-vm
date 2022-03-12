@@ -1,0 +1,178 @@
+#!/bin/bash
+#
+# author: Gboyanghao@163.com
+# description: create virtual script
+
+# --------virtual disk setting --------------
+disk_path=/data
+disk_size=20G
+disk_type=qcow2
+disk_name=''
+disk_cmd=/usr/bin/qemu-img
+create_dir=/usr/bin/mkdir
+# ----------------------------------
+
+# ---------virtual hosts setting -------------------------
+vm_name=
+vm_mem=1024
+vm_vcpus=1
+vm_type=kvm
+vm_isodir=`dirname $0`
+vm_network='network=default'
+vm_ostype=linux
+vm_disk=
+# ---------------------------------------------------------
+
+# Virtual host name
+read -p "Virtual disk name:" name
+
+if [ -z $name ];then
+	echo -e "\033[31m ERROR:Must be, can not be empty \033[0m"
+	exit 1
+else
+	disk_name=$name
+fi
+
+# Virtual disk path
+read -p "Virtual disk path (default path: $disk_path/$disk_name):" path
+if [ ! -z $path ];then
+	disk_path=$path/$disk_name
+else
+	disk_path=$disk_path/$disk_name
+fi
+$create_dir -p $disk_path
+
+# Virtual size
+read -p "Virtual Size (default: 20G):" d_size
+if [ $d_size ];then
+	unit=$(echo ${d_size: -1}|tr [a-z] [A-Z])
+	if [ $unit == "M" ];then
+		disk_size=$d_size
+	elif [ $unit == "G" ];then
+		disk_size=$d_size
+	elif [ $unit == "T" ];then
+		disk_size=$d_size
+	else
+		echo -e "\033[31m ERROR: Common parameters(M/G/T),脚本退出请重新运行 \033[0m"
+		exit 2
+	fi
+fi
+
+# disk format
+read -p "Specify disk format (select: qcow2/raw/vmdk)(default:qcow2):" d_type
+if [ $d_type ];then
+	if [ $d_type == "qcow2" ];then
+		disk_type=$d_type
+	elif [ $d_type == "raw" ];then
+		disk_type=$d_type
+	elif [ $d_type == "vmdk" ];then
+		disk_type=$d_type
+	else
+		echo -e "\033[31m ERROR: It doesn't match the format you want \033[0m"
+		exit 3
+	fi
+fi
+
+
+if [ ! -e $disk_cmd ];then
+	echo -e "\033[31m Please confirm if there is a base environment \033[0m"
+	echo -e "\033[31m install qemu-img-1.5.3-175.el7_9.3.x86_64 Package \033[0m"
+	exit 4
+fi 
+# qemu-img create -f qcow2 /application/kvm_data/moban.qcow2 20G
+disk_file=$disk_path/$disk_name.$disk_type
+cd $disk_path && $disk_cmd create -f $disk_type $disk_file $disk_size
+if [ $? = 0 ];then
+	if [ -f $disk_file ];then
+		echo -e "\033[32m
+		-----------Disk creation successful------------------
+		# disk_name: $disk_name
+		# disk_size: $disk_size
+		# disk_file: $disk_file
+		-----------------------------------------------------
+		\033[0m"
+	fi
+else
+	echo -e "\033[31m Failed to create disk \033[0m"
+	exit 888
+fi
+
+# --------------------------------------------------------------
+read -p "Virtual host name(default: $disk_name):" v_host
+if [ $v_host ];then
+	vm_name=$v_host
+else
+	vm_name=$disk_name
+fi
+
+memory_info=$(cat /proc/meminfo |sed -rn '/MemFree/s@^.*:(.*) kB@\1@p'|sed 's/[[:space:]]//g')
+read -p "Memory Size [$memory_info KB] :" mem
+if [ $mem ];then
+	if echo $mem|grep -q '[^0-9]'
+	then
+		echo -e "\033[31m ERROR:this is not a num,please input num \033[0m"
+		exit 5
+	else
+		vm_mem=$mem
+	fi
+fi
+
+# cpu of processors
+cpu_info=$(lscpu |awk 'NR==4{print $NF}')
+read -p "cpu number [$cpu_info] (default:1):" vcpu
+if [ $vcpu ];then
+	if echo $vcpu |grep -q '[^0-9]'
+	then
+		echo -e "\033[31m ERROR:A number of CPU \033[0m"
+		exit 6
+	else
+		vm_vcpus=$vcpu
+	fi
+fi
+
+find_com=/usr/bin/find
+if [ -d $vm_isodir ];then
+	for iso_file in $($find_com $vm_isodir -type f -name "*.iso")
+	do
+		echo -e "\033[32m $iso_file \033[0m"
+	done
+else
+	echo -e "\033[31m ERROR:$vm_isodir is not directory \033[0m"
+	exit 7
+fi
+iso_file_path=''
+read -p "ISO PATH:" i_path
+if [ $i_path ];then
+	iso_file_path=$i_path
+else
+	echo -e "\033[31m ERROR:Please specify the path ISO \033[0m"
+	exit 8
+fi
+
+# print info
+echo -e "\033[32m
+--------------------info-----------------------------
+# name: $vm_name
+# cpu:$vm_vcpus
+# memory:$vm_mem
+# iso_file:$iso_file_path
+# disk:$disk_file
+-----------------------------------------------------
+\033[0m"
+read -p "Whether to create(y or n):" qr
+if [ $qr == "y" ];then
+	# virt-install --virt-type=kvm --name=c72-moban --vcpus=1 -r 1024 -c /application/tools/CentOS7.iso --network network=default --graphics vnc,listen=0.0.0.0 --noautoconsole --os-type=linux --os-variant=rhel7 --disk path=/application/kvm_data/moban.qcow2,size=20,format=qcow2
+	/usr/bin/virt-install --virt-type=$vm_type --name=$vm_name --vcpus=$vm_vcpus -r $vm_mem -c $iso_file_path \
+--network network=default --graphics vnc,listen=0.0.0.0 --noautoconsole --disk path=$disk_file,format=$disk_type
+	if [ $? == 0 ];then
+		echo -e "\033[32m INFO:Creating a successful \033[0m"
+	else
+		echo -e "\033[31m ERROR:Create a failure \033[0m"
+		sleep 3
+		echo -e "\033[31m ERROR:rm -rf $disk_path \033[0m"
+		/usr/bin/rm -rf $disk_path
+	fi
+else
+	echo '脚本退出'
+	exit 888888
+fi
